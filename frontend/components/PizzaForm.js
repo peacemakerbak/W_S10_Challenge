@@ -1,54 +1,96 @@
-import React from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { updateForm, updateTopping, submitOrder } from '../state/store';
+import React, { useState, useEffect } from'react';
+import { useDispatch, useSelector } from'react-redux';
+import { submitPizzaOrder, resetOrderState } from '../state/pizzaOrderSlice';
+import { fetchPizzaHistory } from '../state/pizzaSlice';
+import {
+  setSizeFilter,
+  selectFilteredPizzaHistory,
+} from '../state/sizeFilterSlice'
+const initialFormState = {
+  fullName: '',
+  size: '',
+  1: false,
+  2: false,
+  3: false,
+  4: false,
+  5: false,
+};
 
 export default function PizzaForm() {
   const dispatch = useDispatch();
-  const form = useSelector(state => state.form);
-  const { fullName, size, toppings, loading, error } = form;
+  const { loading, error, success } = useSelector((state) => state.pizzaOrder);
 
-  const handleChange = e => {
+  const filterSize = useSelector((state) => state.sizeFilter);
+  const [formState, setFormState] = useState(initialFormState);
+  
+  const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const fieldValue = type === 'checkbox' ? checked : value;
-    if (type === 'checkbox') {
-      dispatch(updateTopping({ name, value: fieldValue }));
-    } else {
-      dispatch(updateForm({ name, value: fieldValue }));
-    }
+    setFormState((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
   };
 
-  const handleSubmit = e => {
-    e.preventDefault();
-    const selectedToppings = Object.keys(toppings).filter(key => toppings[key]);
-    const order = { fullName, size, toppings: selectedToppings };
-    dispatch(submitOrder(order));
+  const handleFilterClick = (size) => {
+    dispatch(setSizeFilter(size))
   };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const { fullName, size, ...toppingState } = formState;
+    const toppings = Object.keys(toppingState).filter(
+      (key) => toppingState[key]
+    );
+    dispatch(submitPizzaOrder({ fullName, size, toppings }))
+      .then(() => {
+        dispatch(fetchPizzaHistory());
+      })
+      .catch((error) => console.error('Order submission failed:', error));
+  };
+
+  //Automatically reset form state on successful order submission
+  useEffect(() => {
+    if (success) {
+      setFormState(initialFormState);
+      dispatch(resetOrderState());
+    }
+  }, [success, dispatch]);
 
   return (
-    <form onSubmit={handleSubmit}>
+    <div>
       <h2>Pizza Form</h2>
-      {loading && <div className='pending'>Order in progress...</div>}
-      {error && <div className='failure'>Order failed: {error}</div>}
-
+      {loading && <div className='pending'>Order in progress</div>}
+      {error && <div className='failure'>Order failed: {error.message}</div>}
+      {success && <div className='success'>Order submitted successfully!</div>}
+      <form onSubmit={handleSubmit}>
       <div className="input-group">
         <div>
-          <label htmlFor="fullName">Full Name</label><br />
+          <label htmlFor="fullName">Full Name</label>
+          <br />
           <input
             data-testid="fullNameInput"
             id="fullName"
             name="fullName"
             placeholder="Type full name"
             type="text"
-            value={fullName}
+            value={formState.fullName}
             onChange={handleChange}
+            required=''
           />
         </div>
       </div>
 
       <div className="input-group">
         <div>
-          <label htmlFor="size">Size</label><br />
-          <select data-testid="sizeSelect" id="size" name="size" value={size} onChange={handleChange}>
+          <label htmlFor="size">Size</label>
+          <br />
+          <select 
+            data-testid="sizeSelect" 
+            id="size" 
+            name="size"
+            value={formState.size}
+            onChange={handleChange}
+          >
             <option value="">----Choose size----</option>
             <option value="S">Small</option>
             <option value="M">Medium</option>
@@ -59,22 +101,86 @@ export default function PizzaForm() {
 
       <div className="input-group">
         <label>
-          <input data-testid="checkPepperoni" name="1" type="checkbox" checked={toppings['1']} onChange={handleChange} />
-          Pepperoni<br /></label>
+          <input 
+            data-testid="checkPepperoni" 
+            name="1" 
+            type="checkbox" 
+            checked={formState['1']}
+            onChange={handleChange} 
+          />
+          Pepperoni
+          <br />
+          </label>
         <label>
-          <input data-testid="checkGreenpeppers" name="2" type="checkbox" checked={toppings['2']} onChange={handleChange} />
-          Green Peppers<br /></label>
+          <input 
+            data-testid="checkGreenpeppers" 
+            name="2" 
+            type="checkbox" 
+            checked={formState['2']}
+            onChange={handleChange} 
+          />
+          Green Peppers
+          <br />
+          </label>
         <label>
-          <input data-testid="checkPineapple" name="3" type="checkbox" checked={toppings['3']} onChange={handleChange} />
-          Pineapple<br /></label>
+          <input 
+            data-testid="checkPineapple" 
+            name="3" 
+            type="checkbox" 
+            checked={formState['3']}
+            onChange={handleChange} 
+          />
+          Pineapple
+          <br />
+          </label>
         <label>
-          <input data-testid="checkMushrooms" name="4" type="checkbox" checked={toppings['4']} onChange={handleChange} />
-          Mushrooms<br /></label>
+          <input 
+            data-testid="checkMushrooms" 
+            name="4" 
+            type="checkbox" 
+            checked={formState['4']}
+            onChange={handleChange} 
+          />
+          Mushrooms
+          <br />
+          </label>
         <label>
-          <input data-testid="checkHam" name="5" type="checkbox" checked={toppings['5']} onChange={handleChange} />
-          Ham<br /></label>
+          <input 
+            data-testid="checkHam" 
+            name="5" 
+            type="checkbox" 
+            checked={formState['5']}
+            onChange={handleChange} 
+          />
+          Ham
+          <br />
+          </label>
       </div>
-      <input data-testid="submit" type="submit" />
+      <input 
+        data-testid="submit" 
+        type="submit" 
+        value='Submit'
+        disabled={loading}
+      />
     </form>
+    <div id='sizeFilters' style={{display:'none'}}>
+      Filter by size:
+      {['All', 'S', 'M', 'L'].map((size) => {
+        const className = `button-filter${
+          size === filterSize ? ' active' : ''
+        }`;
+        return (
+        <button
+          className={className}
+          key={size}
+          onClick = {() => handleFilterClick(size)}
+          data-testid={`filterBtn${size}`}
+          >
+            {size}
+          </button>
+        );
+      })}
+      </div>
+    </div>
   );
 }
