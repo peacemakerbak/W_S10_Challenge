@@ -1,5 +1,4 @@
 import { configureStore, createSlice } from '@reduxjs/toolkit';
-import thunk from 'redux-thunk'; // Correct import
 import axios from 'axios';
 
 // Define initial state for orders
@@ -19,7 +18,7 @@ const ordersSlice = createSlice({
     },
     fetchOrdersSuccess(state, action) {
       state.loading = false;
-      state.orders = action.payload || []; // Default to empty array if no payload
+      state.orders = action.payload || [];
     },
     fetchOrdersFailure(state, action) {
       state.loading = false;
@@ -93,11 +92,7 @@ const fetchOrders = () => async dispatch => {
   dispatch(ordersSlice.actions.fetchOrdersStart());
   try {
     const response = await axios.get('http://localhost:9009/api/pizza/history');
-    if (response && response.data) {
-      dispatch(ordersSlice.actions.fetchOrdersSuccess(response.data));
-    } else {
-      throw new Error('No data in response');
-    }
+    dispatch(ordersSlice.actions.fetchOrdersSuccess(response.data));
   } catch (error) {
     dispatch(ordersSlice.actions.fetchOrdersFailure(error.message));
   }
@@ -107,12 +102,8 @@ const submitOrder = order => async dispatch => {
   dispatch(formSlice.actions.submitFormStart());
   try {
     const response = await axios.post('http://localhost:9009/api/pizza/order', order);
-    if (response && response.data) {
-      dispatch(formSlice.actions.submitFormSuccess());
-      dispatch(ordersSlice.actions.addOrder(order)); // Optionally refetch orders if needed
-    } else {
-      throw new Error('No data in response');
-    }
+    dispatch(formSlice.actions.submitFormSuccess());
+    dispatch(ordersSlice.actions.addOrder(order));
   } catch (error) {
     dispatch(formSlice.actions.submitFormFailure(error.response?.data?.message || error.message));
   }
@@ -128,7 +119,6 @@ const rootReducer = {
 // Function to create and configure a new store instance
 const createStore = () => configureStore({
   reducer: rootReducer,
-  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(thunk),
 });
 
 // Configure the initial store instance
@@ -138,6 +128,6 @@ const store = createStore();
 const resetStore = () => createStore();
 
 // Export actions and async action creators
-export const { updateForm, updateTopping, submitFormStart, submitFormSuccess, submitFormFailure } = formSlice.actions;
+export const { updateForm, updateTopping } = formSlice.actions;
 export const { setSizeFilter } = filtersSlice.actions;
 export { store, resetStore, fetchOrders, submitOrder };
